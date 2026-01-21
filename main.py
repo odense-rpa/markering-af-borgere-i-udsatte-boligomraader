@@ -3,6 +3,7 @@ import os
 import asyncio
 import logging
 import sys
+from datetime import datetime, timedelta, timezone
 
 from odk_tools.tracking import Tracker
 from momentum_client.manager import MomentumClientManager
@@ -19,8 +20,66 @@ async def populate_queue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
 
     logger.info("Hello from populate workqueue!")
-    for adresse in adresser:
-        print(f"Adding to queue: {adresse.adresse} - {adresse.markering}")
+
+    # sætter filtre op til at finde 6.1 & 6.2 borgere, der har startet markering indenfor 15 dage
+    filters = [
+        {
+            "customFilter": "",
+            "fieldName": "targetGroupCode",
+            "values": [
+                "6.1",
+                "6.2",
+            ]
+        },
+        {
+            "fieldName" : "targetGroupStartDate",
+            "values" : [
+                (datetime.now(timezone.utc) - timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%SZ"),
+                (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%SZ"),
+                False
+            ]
+        }
+    ]   
+    borgere = momentum.borgere.hent_borgere(filters=filters)
+
+    for borger in borgere["data"]:
+        borger_info = momentum.borgere.hent_borger(borger["cpr"])
+        borger_adresse = (
+            borger_info.get("contactInformation", {}).get("primaryAddress", {}).get("street", "") +
+            " " +
+            borger_info.get("contactInformation", {}).get("primaryAddress", {}).get("building", "")
+        )
+
+        # check om borgerens adresse er i excel listen - ellers skip borger
+        if not borger_adresse.strip() in [b.adresse for b in adresser]:
+            continue
+
+        # finder den markeringsgruppe, der passer til borgerens adresse
+        passende_markering = [b.markering for b in adresser if b.adresse == borger_adresse.strip()]
+        if not passende_markering:
+            ValueError(f"Kunne ikke finde passende markering for borger med adresse {borger_adresse}")
+
+        # hvis borgere har opgaven og fået den inden for 30 dage, så skip borger
+        borgers_opgaver = momentum.opgaver.hent_opgaver(borger_info)
+        if any(opgave for opgave in borgers_opgaver if opgave["title"] in ["Nye borgere", "Nye borgere - ingen uddannelsen"] and datetime.fromisoformat(opgave["deadline"].replace("Z", "+00:00")) >= datetime.now(timezone.utc) - timedelta(days=30)):
+            logger.info(f"Borger {borger['cpr']} har allerede en aktiv opgave - springer over")
+            continue
+
+        data = {
+            "cpr": borger["cpr"],
+            "målgruppe": borger.get("targetGroupCode", ""),
+            "markering": passende_markering[0],
+        }
+        
+        workqueue.add_item(
+            data=data,
+            reference=data["cpr"],
+        )
+        
+        print("stop2")
+
+    print("stop")   
+
 
 async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
