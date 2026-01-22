@@ -21,7 +21,7 @@ async def populate_queue(workqueue: Workqueue):
 
     logger.info("Hello from populate workqueue!")
 
-    # sætter filtre op til at finde 6.1 & 6.2 borgere, der har startet markering indenfor 15 dage
+    # sætter filtre op til at finde 6.1 & 6.2 borgere, der har startet målgruppen indenfor 15 dage
     filters = [
         {
             "customFilter": "",
