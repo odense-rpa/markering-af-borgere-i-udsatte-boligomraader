@@ -9,6 +9,7 @@ from odk_tools.tracking import Tracker
 from momentum_client.manager import MomentumClientManager
 from automation_server_client import AutomationServer, Workqueue, WorkItemError, Credential, WorkItemStatus
 from process.config import load_excel_sheet
+from process.uddannelse import tilføj_uddannelsesmarkering
 
 tracker: Tracker
 momentum: MomentumClientManager
@@ -89,8 +90,17 @@ async def process_workqueue(workqueue: Workqueue):
     for item in workqueue:
         with item:
             data = item.data  # Item data deserialized from json as dict
- 
+            ingen_uddannelse = False
+            markering = data["markering"]
             try:
+                borger = momentum.borgere.hent_borger(data["cpr"])
+                borgers_uddannelsesniveau = momentum.borgere.hent_uddannelser(borger)
+                # Hvis borger ikke har nogen uddannelse, så skal vi oprette speciel opgave
+                if not borgers_uddannelsesniveau: 
+                    ingen_uddannelse = True
+                
+                markering = tilføj_uddannelsesmarkering(markering, borgers_uddannelsesniveau)
+
                 # Process the item here
                 pass
             except WorkItemError as e:
