@@ -23,11 +23,9 @@ def tilføj_uddannelsesmarkering(markering: str, borgers_uddannelsesniveau: list
     niveauer = {udd["levelName"] for udd in borgers_uddannelsesniveau}
 
     if niveauer & VIDEREGAAENDE:
-        markering += " 1"
+        return markering + " 1"
 
     if niveauer & ERHVERV:
-        markering += " 2"
-    else:
-        markering += " 3"
-
-    return markering
+        return markering + " 2"
+    
+    return markering + " 3"

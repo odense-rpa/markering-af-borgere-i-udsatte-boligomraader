@@ -10,6 +10,7 @@ from momentum_client.manager import MomentumClientManager
 from automation_server_client import AutomationServer, Workqueue, WorkItemError, Credential, WorkItemStatus
 from process.config import load_excel_sheet
 from process.uddannelse import tilføj_uddannelsesmarkering
+from process.sagsbehandler import tildel_sagsbehandler_og_opret_opgave
 
 tracker: Tracker
 momentum: MomentumClientManager
@@ -37,7 +38,7 @@ async def populate_queue(workqueue: Workqueue):
             "values" : [
                 (datetime.now(timezone.utc) - timedelta(days=15)).strftime("%Y-%m-%d %H:%M:%SZ"),
                 (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%SZ"),
-                False
+                "false"
             ]
         }
     ]   
@@ -87,19 +88,45 @@ async def process_workqueue(workqueue: Workqueue):
 
     logger.info("Hello from process workqueue!")
 
+    sagsbehandlere = [
+         {"Initialer": "rmp", "Navn": "Rikke Mahler Pedersen", "Målgruppe": "6.1"},
+         {"Initialer": "amich", "Navn": "Ania Minna Smücher Christiansen", "Målgruppe": "6.2"}
+     ]
+
+
     for item in workqueue:
         with item:
             data = item.data  # Item data deserialized from json as dict
             ingen_uddannelse = False
             markering = data["markering"]
             try:
-                borger = momentum.borgere.hent_borger(data["cpr"])
+                #borger = momentum.borgere.hent_borger(data["cpr"])
+                # TESTBORGER
+                borger = momentum.borgere.hent_borger("0706919079") # falsk cpr
+
                 borgers_uddannelsesniveau = momentum.borgere.hent_uddannelser(borger)
                 # Hvis borger ikke har nogen uddannelse, så skal vi oprette speciel opgave
                 if not borgers_uddannelsesniveau: 
                     ingen_uddannelse = True
                 
+                # Finder den korrekte markering baseret på borgers uddannelsesniveau
                 markering = tilføj_uddannelsesmarkering(markering, borgers_uddannelsesniveau)
+
+                # Tilføjer korrekt sagsbehandler og opretter opgave til denne
+                opgave = tildel_sagsbehandler_og_opret_opgave(
+                    momentum, borger, data, sagsbehandlere, ingen_uddannelse
+                )
+
+                borgers_markeringer = momentum.borgere.hent_markeringer(borger)
+
+                # Se om markeringen allerede findes
+                if not any(m for m in borgers_markeringer if m["end"] == None and m["type"]["name"] == markering):
+                    # Tilføj markering til borger
+                    momentum.borgere.opret_markering(
+                        borger,
+                        markeringstype=markering,
+                        start_dato=datetime.now(timezone.utc).date().strftime("%d-%m-%Y")
+                    )
 
                 # Process the item here
                 pass
@@ -135,7 +162,8 @@ if __name__ == "__main__":
 
     # Initialize external systems for automation here..
     tracking_credential = Credential.get_credential("Odense SQL Server")
-    momentum_credential = Credential.get_credential("Momentum - produktion")
+    # momentum_credential = Credential.get_credential("Momentum - produktion")
+    momentum_credential = Credential.get_credential("Momentum - edu")
 
     tracker = Tracker(
         username=tracking_credential.username,
