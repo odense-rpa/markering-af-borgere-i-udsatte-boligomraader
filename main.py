@@ -3,7 +3,7 @@ import os
 import asyncio
 import logging
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 
 from odk_tools.tracking import Tracker
 from momentum_client.manager import MomentumClientManager
@@ -100,9 +100,9 @@ async def process_workqueue(workqueue: Workqueue):
             ingen_uddannelse = False
             markering = data["markering"]
             try:
-                #borger = momentum.borgere.hent_borger(data["cpr"])
+                borger = momentum.borgere.hent_borger(data["cpr"])
                 # TESTBORGER
-                borger = momentum.borgere.hent_borger("0706919079") # falsk cpr
+                # borger = momentum.borgere.hent_borger("0706919079") # falsk cpr
 
                 borgers_uddannelsesniveau = momentum.borgere.hent_uddannelser(borger)
                 # Hvis borger ikke har nogen uddannelse, så skal vi oprette speciel opgave
@@ -123,10 +123,11 @@ async def process_workqueue(workqueue: Workqueue):
                 if not any(m for m in borgers_markeringer if m["end"] == None and m["type"]["name"] == markering):
                     # Tilføj markering til borger
                     momentum.borgere.opret_markering(
-                        borger,
-                        markeringstype=markering,
-                        start_dato=datetime.now(timezone.utc).date().strftime("%d-%m-%Y")
+                        borger=borger,
+                        markeringsnavn=markering,
+                        start_dato=date.today()
                     )
+                    tracker.track_task(process_name=proces_navn)
 
                 # Process the item here
                 pass
@@ -162,8 +163,8 @@ if __name__ == "__main__":
 
     # Initialize external systems for automation here..
     tracking_credential = Credential.get_credential("Odense SQL Server")
-    # momentum_credential = Credential.get_credential("Momentum - produktion")
-    momentum_credential = Credential.get_credential("Momentum - edu")
+    momentum_credential = Credential.get_credential("Momentum - produktion")
+    # momentum_credential = Credential.get_credential("Momentum - edu")
 
     tracker = Tracker(
         username=tracking_credential.username,

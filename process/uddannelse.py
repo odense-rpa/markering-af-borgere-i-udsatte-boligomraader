@@ -7,6 +7,9 @@ def tilføj_uddannelsesmarkering(markering: str, borgers_uddannelsesniveau: list
     - " 2" for erhvervsuddannelse
     - " 3" ellers
     """
+    if not borgers_uddannelsesniveau:
+        return markering + " 3"
+    
     VIDEREGAAENDE = {
         'Kort videregående uddannelse',
         'Mellemlang videregående uddannelse',
