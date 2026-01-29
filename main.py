@@ -63,7 +63,7 @@ async def populate_queue(workqueue: Workqueue):
 
         # hvis borgere har opgaven og fået den inden for 30 dage, så skip borger
         borgers_opgaver = momentum.opgaver.hent_opgaver(borger_info)
-        if any(opgave for opgave in borgers_opgaver if opgave["title"] in ["Nye borgere", "Nye borgere - ingen uddannelsen"] and datetime.fromisoformat(opgave["deadline"].replace("Z", "+00:00")) >= datetime.now(timezone.utc) - timedelta(days=30)):
+        if any(opgave for opgave in borgers_opgaver if opgave["title"] in ["Nye borgere", "Nye borgere - ingen uddannelse"] and datetime.now(timezone.utc) - timedelta(days=30) <= datetime.fromisoformat(opgave["deadline"]) <= datetime.now(timezone.utc)):
             logger.info(f"Borger {borger['cpr']} har allerede en aktiv opgave - springer over")
             continue
 
@@ -109,18 +109,18 @@ async def process_workqueue(workqueue: Workqueue):
                 if not borgers_uddannelsesniveau: 
                     ingen_uddannelse = True
                 
+                # Tilføjer korrekt sagsbehandler og opretter opgave til denne
+                # tildel_sagsbehandler_og_opret_opgave(
+                #     momentum, borger, data, sagsbehandlere, ingen_uddannelse
+                # )
                 # Finder den korrekte markering baseret på borgers uddannelsesniveau
                 markering = tilføj_uddannelsesmarkering(markering, borgers_uddannelsesniveau)
 
-                # Tilføjer korrekt sagsbehandler og opretter opgave til denne
-                opgave = tildel_sagsbehandler_og_opret_opgave(
-                    momentum, borger, data, sagsbehandlere, ingen_uddannelse
-                )
-
+                # Henter borgers markeringer
                 borgers_markeringer = momentum.borgere.hent_markeringer(borger)
 
                 # Se om markeringen allerede findes
-                if not any(m for m in borgers_markeringer if m["end"] == None and m["type"]["name"] == markering):
+                if not any(m for m in borgers_markeringer if m["tag"]["end"] == None and m["tag"]["title"] == markering):
                     # Tilføj markering til borger
                     momentum.borgere.opret_markering(
                         borger=borger,
@@ -129,8 +129,6 @@ async def process_workqueue(workqueue: Workqueue):
                     )
                     tracker.track_task(process_name=proces_navn)
 
-                # Process the item here
-                pass
             except WorkItemError as e:
                 # A WorkItemError represents a soft error that indicates the item should be passed to manual processing or a business logic fault
                 logger.error(f"Error processing item: {data}. Error: {e}")
