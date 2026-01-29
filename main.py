@@ -77,11 +77,6 @@ async def populate_queue(workqueue: Workqueue):
             data=data,
             reference=data["cpr"],
         )
-        
-        print("stop2")
-
-    print("stop")   
-
 
 async def process_workqueue(workqueue: Workqueue):
     logger = logging.getLogger(__name__)
