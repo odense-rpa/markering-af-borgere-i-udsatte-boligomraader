@@ -63,7 +63,7 @@ async def populate_queue(workqueue: Workqueue):
 
         # hvis borgere har opgaven og fået den inden for 30 dage, så skip borger
         borgers_opgaver = momentum.opgaver.hent_opgaver(borger_info)
-        if any(opgave for opgave in borgers_opgaver if opgave["title"] in ["Nye borgere", "Nye borgere - ingen uddannelse"] and datetime.now(timezone.utc) - timedelta(days=30) <= datetime.fromisoformat(opgave["deadline"]) <= datetime.now(timezone.utc)):
+        if any(opgave for opgave in borgers_opgaver if opgave["title"] in ["Nye borgere", "Nye borgere - ingen uddannelse"] and datetime.fromisoformat(opgave["deadline"]) >= (datetime.now(timezone.utc) - timedelta(days=30))):
             logger.info(f"Borger {borger['cpr']} har allerede en aktiv opgave - springer over")
             continue
 
