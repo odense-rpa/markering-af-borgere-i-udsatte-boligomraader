@@ -110,9 +110,9 @@ async def process_workqueue(workqueue: Workqueue):
                     ingen_uddannelse = True
                 
                 # Tilføjer korrekt sagsbehandler og opretter opgave til denne
-                # tildel_sagsbehandler_og_opret_opgave(
-                #     momentum, borger, data, sagsbehandlere, ingen_uddannelse
-                # )
+                tildel_sagsbehandler_og_opret_opgave(
+                    momentum, borger, data, sagsbehandlere, ingen_uddannelse
+                )
                 # Finder den korrekte markering baseret på borgers uddannelsesniveau
                 markering = tilføj_uddannelsesmarkering(markering, borgers_uddannelsesniveau)
 
