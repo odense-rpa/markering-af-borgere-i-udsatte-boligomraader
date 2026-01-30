@@ -96,8 +96,6 @@ async def process_workqueue(workqueue: Workqueue):
             markering = data["markering"]
             try:
                 borger = momentum.borgere.hent_borger(data["cpr"])
-                # TESTBORGER
-                # borger = momentum.borgere.hent_borger("0706919079") # falsk cpr
 
                 borgers_uddannelsesniveau = momentum.borgere.hent_uddannelser(borger)
                 # Hvis borger ikke har nogen uddannelse, så skal vi oprette speciel opgave

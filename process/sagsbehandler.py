@@ -16,19 +16,19 @@ def tildel_sagsbehandler_og_opret_opgave(momentum, borger, data, sagsbehandlere,
     # Hent sagsbehandler
     sagsbehandler = momentum.borgere.hent_sagsbehandler(sagsbehandler["Initialer"])
     
+    # Hvis borger ikke allerede har sagsbehandler, så tilføj denne
     borgers_sagsbehandlere = momentum.borgere.hent_aktive_sagsbehandlere(borger)
     if sagsbehandler["name"] not in [s["name"] for s in borgers_sagsbehandlere["data"]]:
         momentum.borgere.opdater_borgers_ansvarlige_og_kontaktpersoner(
             borger,
             medarbejderid=sagsbehandler["id"],
         )
-
-
     
     if ingen_uddannelse:
         opgave_titel = "Nye borgere - ingen uddannelse"
         opgave_beskrivelse = "Vi fandt ingen uddannelse på denne borger"
     
+    # Lav sagsbehandler om til passende type for opgaveoprettelse
     medarbejdere = [sagsbehandler]
 
     opgave = momentum.opgaver.opret_opgave(
