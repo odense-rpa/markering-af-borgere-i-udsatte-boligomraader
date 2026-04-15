@@ -136,21 +136,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--excel-file", 
         default="./Boligadresser.xlsx", 
-        help="Populate the workqueue instead of processing it"
+        help="Path to the Excel file containing housing addresses and markings"
         )
     
     parser.add_argument(
         "--queue",
         action="store_true",
-        help="Populate the queue with test data and exit",
+        help="Populate the workqueue from Momentum and exit",
     )
     args = parser.parse_args()
-
-    adresser = load_excel_sheet(args.excel_file)
 
     # Validate Excel file exists
     if not os.path.isfile(args.excel_file):
         raise FileNotFoundError(f"Excel file not found: {args.excel_file}")
+
+    adresser = load_excel_sheet(args.excel_file)
 
     # Initialize external systems for automation here..
     tracking_credential = Credential.get_credential("Odense SQL Server")
